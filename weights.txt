@@ -1,0 +1,2 @@
+/wi_required/object_weight_file/best.onnx
+/wi_required/pet_model/

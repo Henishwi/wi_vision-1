@@ -1,0 +1,9 @@
+train: /content/drive/MyDrive/final_dataset/images/train/
+test: /content/drive/MyDrive/final_dataset/images/test/
+val: /content/drive/MyDrive/final_dataset/images/val/
+
+#Number Of Classes
+nc: 10
+
+#Class Names
+names: ['pet', 'ldpe', 'hdpe', 'paper', 'pp', 'aluminium_foil', 'multilayer_plastic', 'cardboard', 'aluminium_can', 'tetrapack']
