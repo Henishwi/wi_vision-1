@@ -1,17 +1,17 @@
 #Import Libraries
 import argparse
-from tkinter import image_names
 import numpy as np
 from numpy.linalg import norm
 from common import *
-import yaml
-import datetime 
+import yaml 
 from yaml.loader import SafeLoader
+from s3_upload import *
 
 #Weight Variables
 obj_weight_yolov5 = ''
 obj_weight_classifier = ''
 pet_weight_classifier = ''
+bucketname = 'wivisionproduction'
 
 #DECLARE FUNCTIONS  
 
@@ -42,8 +42,7 @@ def process_dest(dest_path):
     dest_loc = dest_path
     try:
         try:
-            now = datetime.now()
-            dt_ = now.strftime("%d-%m-%y-%H-%M-%S")
+            dt_ = 'OUTPUT'
             if not(os.path.isdir(dest_loc)):
                 if dt_ not in os.listdir(get_py_path()):
                     os.mkdir(get_py_path() + dt_)
@@ -140,6 +139,30 @@ def get_labels():
         data = yaml.load(f, Loader = SafeLoader)
         labels = data['names']
     return labels
+
+def load_data():
+    line = ''
+    clt = boto3.client('s3')
+    res = boto3.resource('s3')
+    bucket = res.Bucket(bucketname) 
+    bucket.download_file('latest_dataset.txt', get_py_path() + 'wi_required/latest_dataset.txt')
+    with open(get_py_path() + 'wi_required/latest_dataset.txt', 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            line = l
+    local_dir = None
+    for obj in bucket.objects.filter(Prefix=line):
+        target = obj.key if local_dir is None \
+            else os.path.join(local_dir, os.path.relpath(obj.key, line))
+        if not os.path.exists(os.path.dirname(target)):
+            os.makedirs(os.path.dirname(target))
+        if obj.key[-1] == '/':
+            continue
+        bucket.download_file(obj.key, target)
+    return line
+
+def delete_data():
+    pass
 
 #Check All Requirements
 def check_requirements():
@@ -248,19 +271,36 @@ def color_detection():
 #Argument Parser Function
 def parse_opt():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--src_loc', '-sl', required=True, help='Provide Source Location of the Image. DIRECTORY; IMAGE FILES OF FORMAT PNG, JPG, JPEG; BAGFILES ARE ACCEPTED.')
+    parser.add_argument('--s3_', default=False ,help="If want to use s3 service.")
+    parser.add_argument('--src_loc',  '-sl', help='Provide Source Location of the Image. DIRECTORY; IMAGE FILES OF FORMAT PNG, JPG, JPEG; BAGFILES ARE ACCEPTED.')
     parser.add_argument('--dest_loc', '-dl', default= '', help='Provide DIRECTORY path to save crops. SUGGESTED TO PROVIDE AN EMPTY DIRECTORY')
     parser.add_argument('--pet_det', default=False, help='Mention this to do pet classification')
-    args = parser.parse_args()
-    return args.src_loc, args.dest_loc, args.pet_det
+    arg1 = parser.parse_args()
+    if arg1.s3_ == False:
+        args = parser.parse_args()
+        return args.src_loc, args.dest_loc, args.pet_det, arg1.s3_
+    else:
+        return arg1.src_loc, None, None, arg1.s3_     
+
 
 
 #Main Function
 if __name__ == "__main__":
     check_requirements()
-    src_loc, dest_loc, pet_det = parse_opt()
-    dest_loc, crop_loc = process_dest(dest_path= dest_loc)
-    img_arr = process_src(src_loc)
-    for img_ in img_arr:
-        start_detection(img_, dest_loc, crop_loc)
-    
+    src_loc, dest_loc, pet_det, s3_ = parse_opt()
+    if s3_ == False:
+        dest_loc, crop_loc = process_dest(dest_path= dest_loc)
+        img_arr = process_src(src_loc)
+        for img_ in img_arr:
+            start_detection(img_, dest_loc, crop_loc)
+    else:
+        src_loc = get_py_path() + '/' + load_data()
+        img_arr = process_src(src_loc)
+        dest_loc, crop_loc = process_src(dest_loc)
+        for img_ in img_arr:
+            start_detection(img_, dest_loc, crop_loc)
+        """src_loc, dest_loc, crop_loc = load_data()
+        img_arr = process_src(src_loc)
+        for img_ in img_arr:
+            start_detection(img_, dest_loc, crop_loc)
+        pass"""
