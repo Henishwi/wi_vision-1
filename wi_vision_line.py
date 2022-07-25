@@ -167,10 +167,10 @@ def delete_data():
 #Check All Requirements
 def check_requirements():
     os.environ['MKL_THREADING_LAYER'] = 'GNU'
-    os.system('git clone https://github.com/ultralytics/yolov5')
-    req_run = 'pip install -r ' + get_py_path() + 'yolov5/requirements.txt'
+    os.system('sudo git clone https://github.com/ultralytics/yolov5')
+    req_run = 'sudo pip install -r ' + get_py_path() + 'yolov5/requirements.txt'
     os.system(req_run)
-    os.system('git clone https://github.com/Henishwi/wi_required.git')
+    os.system('sudo git clone https://github.com/Henishwi/wi_required.git')
     """
         -yolov5 cloned and up to date or not
         -wi_required cloned and up to date or not
